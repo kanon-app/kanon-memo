@@ -1,0 +1,351 @@
+<!-- ============================================
+     Kanon 診察メモツール（保存なし版）
+     Softr の Custom Code ブロックに丸ごと貼り付け
+     データはどこにも送信・保存されません
+     ============================================ -->
+<div id="kanon-memo">
+  <style>
+    /* ---- Kanonの配色に合わせたスタイル ---- */
+    #kanon-memo {
+      --bg: #F5F8F5;          /* セージグリーン（Kanon背景色） */
+      --card: #FFFFFF;
+      --ink: #333A36;
+      --sub: #6E7A72;
+      --pink: #F8D7DA;        /* 送信ボタンのソフトピンク */
+      --pink-deep: #E9AEB6;
+      --line: #DCE5DE;
+      --accent: #7A9E8B;      /* 深めのセージ（見出し用） */
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      color: var(--ink);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 8px 4px 40px;
+      line-height: 1.7;
+    }
+    #kanon-memo * { box-sizing: border-box; }
+
+    #kanon-memo .km-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 8px 0 4px;
+    }
+    #kanon-memo .km-lead {
+      font-size: 0.9rem;
+      color: var(--sub);
+      margin: 0 0 6px;
+    }
+    #kanon-memo .km-privacy {
+      display: inline-block;
+      font-size: 0.78rem;
+      color: var(--accent);
+      background: #EDF3EE;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 12px;
+      margin-bottom: 18px;
+    }
+
+    /* ---- 質問カード ---- */
+    #kanon-memo .km-q {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px 16px 14px;
+      margin-bottom: 14px;
+    }
+    #kanon-memo .km-q label {
+      display: block;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+    #kanon-memo .km-q .km-hint {
+      font-size: 0.8rem;
+      color: var(--sub);
+      margin-bottom: 8px;
+    }
+    #kanon-memo textarea,
+    #kanon-memo input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 16px;            /* iPhoneのズーム防止 */
+      font-family: inherit;
+      color: var(--ink);
+      resize: vertical;
+    }
+    #kanon-memo textarea:focus,
+    #kanon-memo input[type="text"]:focus {
+      outline: 2px solid var(--pink-deep);
+      outline-offset: 1px;
+    }
+    #kanon-memo textarea { min-height: 72px; }
+    #kanon-memo .km-qq input { margin-bottom: 8px; }
+    #kanon-memo .km-qq .km-num {
+      display: inline-block;
+      width: 1.4em;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    #kanon-memo .km-qq .km-row { display: flex; align-items: center; gap: 6px; }
+    #kanon-memo .km-qq .km-row input { flex: 1; }
+
+    /* ---- ボタン ---- */
+    #kanon-memo .km-btn {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      background: var(--pink);
+      color: var(--ink);
+      margin-top: 6px;
+    }
+    #kanon-memo .km-btn:active { background: var(--pink-deep); }
+    #kanon-memo .km-btn.km-sub {
+      background: var(--card);
+      border: 1px solid var(--line);
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 11px;
+      margin-top: 10px;
+    }
+
+    /* ---- 生成されたメモ ---- */
+    #kanon-memo .km-memo {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px 18px;
+    }
+    #kanon-memo .km-memo h3 {
+      margin: 0 0 2px;
+      font-size: 1.15rem;
+    }
+    #kanon-memo .km-memo .km-date {
+      font-size: 0.8rem;
+      color: var(--sub);
+      margin-bottom: 14px;
+    }
+    #kanon-memo .km-sec { margin-bottom: 14px; }
+    #kanon-memo .km-sec .km-h {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      border-left: 3px solid var(--pink-deep);
+      padding-left: 8px;
+      margin-bottom: 4px;
+    }
+    #kanon-memo .km-sec .km-b {
+      white-space: pre-wrap;
+      font-size: 1rem;
+    }
+    #kanon-memo .km-sec ol {
+      margin: 0;
+      padding-left: 1.4em;
+    }
+    #kanon-memo .km-sec ol li { margin-bottom: 3px; }
+
+    /* ---- 見せるモード（大きな文字） ---- */
+    #kanon-memo.km-show-mode .km-form-area,
+    #kanon-memo.km-show-mode .km-title,
+    #kanon-memo.km-show-mode .km-lead,
+    #kanon-memo.km-show-mode .km-privacy { display: none; }
+    #kanon-memo.km-show-mode .km-memo { font-size: 1.15rem; }
+    #kanon-memo.km-show-mode .km-sec .km-b { font-size: 1.2rem; }
+    #kanon-memo.km-show-mode .km-sec .km-h { font-size: 0.9rem; }
+
+    #kanon-memo .km-toast {
+      display: none;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-top: 8px;
+    }
+  </style>
+
+  <!-- ======== 入力フォーム ======== -->
+  <div class="km-form-area">
+    <div class="km-title">診察前の準備メモ</div>
+    <p class="km-lead">問いに答えるだけで、先生にそのまま見せられるメモができます。</p>
+    <span class="km-privacy">🔒 入力内容はどこにも送信・保存されません</span>
+
+    <div class="km-q">
+      <label for="km-q1">1. 今日いちばん相談したいことは?</label>
+      <div class="km-hint">ひとことでOK。迷っていること、気になっていることなど</div>
+      <textarea id="km-q1" placeholder="例：新しいテープへの変更を勧められたが、迷っている"></textarea>
+    </div>
+
+    <div class="km-q">
+      <label for="km-q2">2. 現在の状況は?</label>
+      <div class="km-hint">使っている薬・症状・いつから、など</div>
+      <textarea id="km-q2" placeholder="例：エストラーナテープ0.72mg＋エフメノ100mgを2ヶ月継続。支障なし"></textarea>
+    </div>
+
+    <div class="km-q km-qq">
+      <label>3. 先生に聞きたいことは?（最大3つ）</label>
+      <div class="km-hint">1つだけでも大丈夫です</div>
+      <div class="km-row"><span class="km-num">①</span><input type="text" id="km-q3a" placeholder="例：天然型とはどう違う?"></div>
+      <div class="km-row"><span class="km-num">②</span><input type="text" id="km-q3b" placeholder="例：やめるデメリットは?"></div>
+      <div class="km-row"><span class="km-num">③</span><input type="text" id="km-q3c" placeholder="例：今のまま続ける選択肢は?"></div>
+    </div>
+
+    <div class="km-q">
+      <label for="km-q4">4. その他、伝えておきたいことは?</label>
+      <div class="km-hint">体調の変化、生活のこと、不安なことなど（なければ空欄でOK）</div>
+      <textarea id="km-q4" placeholder="例：今の組み合わせで体調は安定している。納得してから変えたい"></textarea>
+    </div>
+
+    <button class="km-btn" type="button" onclick="kmBuild()">メモを作る</button>
+  </div>
+
+  <!-- ======== 生成されたメモ ======== -->
+  <div class="km-memo" id="km-memo-card">
+    <h3>診察メモ</h3>
+    <div class="km-date" id="km-date"></div>
+
+    <div class="km-sec" id="km-s1">
+      <div class="km-h">相談したいこと</div>
+      <div class="km-b" id="km-b1"></div>
+    </div>
+    <div class="km-sec" id="km-s2">
+      <div class="km-h">現在の状況</div>
+      <div class="km-b" id="km-b2"></div>
+    </div>
+    <div class="km-sec" id="km-s3">
+      <div class="km-h">聞きたいこと</div>
+      <ol id="km-b3"></ol>
+    </div>
+    <div class="km-sec" id="km-s4">
+      <div class="km-h">その他</div>
+      <div class="km-b" id="km-b4"></div>
+    </div>
+
+    <button class="km-btn" type="button" id="km-show-btn" onclick="kmToggleShow()">大きな文字で見せる</button>
+    <button class="km-btn km-sub" type="button" onclick="kmCopy()">メモをコピーする</button>
+    <button class="km-btn km-sub" type="button" onclick="kmBack()">入力にもどる</button>
+    <div class="km-toast" id="km-toast">コピーしました。メモアプリなどに貼り付けて保存できます</div>
+  </div>
+</div>
+
+<script>
+  function kmVal(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  }
+
+  function kmBuild() {
+    var q1 = kmVal("km-q1"), q2 = kmVal("km-q2"), q4 = kmVal("km-q4");
+    var qs = [kmVal("km-q3a"), kmVal("km-q3b"), kmVal("km-q3c")].filter(function (v) { return v; });
+
+    if (!q1 && !q2 && qs.length === 0 && !q4) {
+      alert("どれか1つでも入力すると、メモが作れます");
+      return;
+    }
+
+    // 日付
+    var d = new Date();
+    document.getElementById("km-date").textContent =
+      d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日";
+
+    // 各セクション（空なら非表示）
+    kmFill("km-s1", "km-b1", q1);
+    kmFill("km-s2", "km-b2", q2);
+    kmFill("km-s4", "km-b4", q4);
+
+    var s3 = document.getElementById("km-s3");
+    var b3 = document.getElementById("km-b3");
+    b3.innerHTML = "";
+    if (qs.length) {
+      s3.style.display = "";
+      qs.forEach(function (q) {
+        var li = document.createElement("li");
+        li.textContent = q;
+        b3.appendChild(li);
+      });
+    } else {
+      s3.style.display = "none";
+    }
+
+    document.querySelector("#kanon-memo .km-form-area").style.display = "none";
+    document.getElementById("km-memo-card").style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function kmFill(secId, bodyId, text) {
+    var sec = document.getElementById(secId);
+    if (text) {
+      sec.style.display = "";
+      document.getElementById(bodyId).textContent = text;
+    } else {
+      sec.style.display = "none";
+    }
+  }
+
+  function kmBack() {
+    var root = document.getElementById("kanon-memo");
+    root.classList.remove("km-show-mode");
+    document.getElementById("km-show-btn").textContent = "大きな文字で見せる";
+    document.getElementById("km-memo-card").style.display = "none";
+    document.querySelector("#kanon-memo .km-form-area").style.display = "block";
+  }
+
+  function kmToggleShow() {
+    var root = document.getElementById("kanon-memo");
+    var btn = document.getElementById("km-show-btn");
+    var on = root.classList.toggle("km-show-mode");
+    btn.textContent = on ? "もとの大きさにもどす" : "大きな文字で見せる";
+  }
+
+  function kmCopy() {
+    var lines = [];
+    lines.push("【診察メモ】" + document.getElementById("km-date").textContent);
+    kmCopyAdd(lines, "km-s1", "■相談したいこと", "km-b1");
+    kmCopyAdd(lines, "km-s2", "■現在の状況", "km-b2");
+    var s3 = document.getElementById("km-s3");
+    if (s3.style.display !== "none") {
+      lines.push("■聞きたいこと");
+      var items = document.querySelectorAll("#km-b3 li");
+      items.forEach(function (li, i) { lines.push((i + 1) + ". " + li.textContent); });
+    }
+    kmCopyAdd(lines, "km-s4", "■その他", "km-b4");
+    var text = lines.join("\n");
+
+    function done() {
+      var t = document.getElementById("km-toast");
+      t.style.display = "block";
+      setTimeout(function () { t.style.display = "none"; }, 3000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { kmCopyFallback(text, done); });
+    } else {
+      kmCopyFallback(text, done);
+    }
+  }
+
+  function kmCopyAdd(lines, secId, title, bodyId) {
+    var sec = document.getElementById(secId);
+    if (sec.style.display !== "none") {
+      lines.push(title);
+      lines.push(document.getElementById(bodyId).textContent);
+    }
+  }
+
+  function kmCopyFallback(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    done();
+  }
+</script>
